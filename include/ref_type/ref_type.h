@@ -1,8 +1,10 @@
 #pragma once
 
+#include <cstddef>
 #include <ref_type/num_fields.hpp>
 #include <source_location>
 #include <string_view>
+#include <tuple>
 #include <version>
 
 #if defined(__clang__)
