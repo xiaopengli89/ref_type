@@ -1,19 +1,20 @@
 #pragma once
 
 #include <cstddef>
-#include <ref_type/num_fields.hpp>
 #include <source_location>
 #include <string_view>
 #include <tuple>
 #include <utility>
 #include <version>
 
+#include "num_fields.hpp"
+
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wc++98-compat-extra-semi"
 #endif
 
-#include <ref_type/get_ith_field_from_fake_object.hpp>
+#include "get_ith_field_from_fake_object.hpp"
 
 #if defined(__clang__)
 #pragma clang diagnostic pop
@@ -33,8 +34,8 @@ struct overloads : Ts... {
 
 // 2. 探测结构化绑定
 #define BIND_CASE(N, ...)                      \
-  [](auto &&u, int) -> decltype(({             \
-    [[maybe_unused]] auto &&[__VA_ARGS__] = u; \
+  [](auto&& u, int) -> decltype(({             \
+    [[maybe_unused]] auto&& [__VA_ARGS__] = u; \
     (char (*)[N])0;                            \
   })) { return {}; }
 
@@ -61,7 +62,7 @@ struct binder_detector {
         BIND_CASE(2, f0, f1),
         BIND_CASE(1, f0),
         // clang-format on
-        [](auto &&u, unsigned) -> char (*)[0] { return {}; });
+        [](auto&& u, unsigned) -> char (*)[0] { return {}; });
   }
 };
 
@@ -74,7 +75,7 @@ constexpr unsigned num_members = []() -> unsigned {
     return rfl::internal::num_fields<T>;
   } else {
     using detector_t = decltype(binder_detector<T>::get());
-    using result_ptr_t = decltype(((detector_t *)0)->operator()(*(T *)0, 0));
+    using result_ptr_t = decltype(((detector_t*)0)->operator()(*(T*)0, 0));
     return sizeof(*(result_ptr_t)0);
   }
 }();
@@ -92,7 +93,7 @@ Wrapper(T) -> Wrapper<T>;
 
 // This workaround is necessary for clang.
 template <class T>
-constexpr auto wrap(const T &arg) noexcept {
+constexpr auto wrap(const T& arg) noexcept {
   return Wrapper{arg};
 }
 
@@ -140,13 +141,13 @@ consteval auto get_nth_field_name_str_view() {
 
 #define DESTRUCT_CASE(N, I, t, ...) \
   else if constexpr (N == I) {      \
-    auto &[__VA_ARGS__] = t;        \
+    auto& [__VA_ARGS__] = t;        \
     return std::tie(__VA_ARGS__);   \
   }
 
 // 将成员解构成 tuple
 template <typename T, size_t N>
-auto StructAsTuple(T &t) {
+auto StructAsTuple(T& t) {
   if constexpr (N == 0) {
     return std::tie();
   }
@@ -171,7 +172,7 @@ auto StructAsTuple(T &t) {
 }
 
 template <typename T, size_t N, typename F>
-void VisitN(T &t, F &&callback) {
+void VisitN(T& t, F&& callback) {
   auto refs = StructAsTuple<T, N>(t);
 
   auto iterate = [&]<size_t... Is>(std::index_sequence<Is...>) {
@@ -183,7 +184,7 @@ void VisitN(T &t, F &&callback) {
 }
 
 template <typename T, typename F>
-void Visit(T &t, F &&callback) {
+void Visit(T& t, F&& callback) {
   constexpr auto N = num_members<T>;
   VisitN<T, N, F>(t, std::forward<F>(callback));
 }
