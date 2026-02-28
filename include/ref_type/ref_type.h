@@ -34,17 +34,16 @@ struct overloads : Ts... {
 
 // 2. 探测结构化绑定
 #define BIND_CASE(N, ...)                      \
-  [](auto&& u, int) -> decltype(({             \
+  [](auto&& u) -> decltype(({                  \
     [[maybe_unused]] auto&& [__VA_ARGS__] = u; \
     (char (*)[N])0;                            \
   })) { return {}; }
 
 // 3. 探测器定义
 template <typename T>
-struct binder_detector {
-  static constexpr auto get() {
-    return overloads(
-        // clang-format off
+constexpr auto detect() {
+  return overloads(
+      // clang-format off
         BIND_CASE(16, f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15),
         BIND_CASE(15, f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14),
         BIND_CASE(14, f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13),
@@ -60,11 +59,10 @@ struct binder_detector {
         BIND_CASE(4, f0, f1, f2, f3),
         BIND_CASE(3, f0, f1, f2),
         BIND_CASE(2, f0, f1),
-        BIND_CASE(1, f0),
-        // clang-format on
-        [](auto&& u, unsigned) -> char (*)[0] { return {}; });
-  }
-};
+        BIND_CASE(1, f0)
+      // clang-format on
+  );
+}
 
 // 4. 计算成员数量
 template <typename T>
@@ -74,8 +72,8 @@ constexpr unsigned num_members = []() -> unsigned {
   } else if constexpr (std::is_aggregate_v<T>) {
     return rfl::internal::num_fields<T>;
   } else {
-    using detector_t = decltype(binder_detector<T>::get());
-    using result_ptr_t = decltype(((detector_t*)0)->operator()(*(T*)0, 0));
+    using detector_t = decltype(detect<T>());
+    using result_ptr_t = decltype(((detector_t*)0)->operator()(*(T*)0));
     return sizeof(*(result_ptr_t)0);
   }
 }();
