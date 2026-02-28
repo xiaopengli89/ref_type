@@ -140,14 +140,14 @@ consteval auto get_nth_field_name_str_view() {
 #define DESTRUCT_CASE(N, I, t, ...) \
   else if constexpr (N == I) {      \
     auto& [__VA_ARGS__] = t;        \
-    return std::tie(__VA_ARGS__);   \
+    return std::forward_as_tuple(__VA_ARGS__);   \
   }
 
 // 将成员解构成 tuple
 template <typename T, size_t N>
 auto StructAsTuple(T& t) {
   if constexpr (N == 0) {
-    return std::tie();
+    return std::tuple();
   }
   // clang-format off
   DESTRUCT_CASE(N, 1, t, f0)
