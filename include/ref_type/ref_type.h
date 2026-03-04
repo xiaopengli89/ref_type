@@ -137,10 +137,10 @@ consteval auto get_nth_field_name_str_view() {
       >();
 }
 
-#define DESTRUCT_CASE(N, I, t, ...) \
-  else if constexpr (N == I) {      \
-    auto& [__VA_ARGS__] = t;        \
-    return std::forward_as_tuple(__VA_ARGS__);   \
+#define DESTRUCT_CASE(N, I, t, ...)            \
+  else if constexpr (N == I) {                 \
+    auto& [__VA_ARGS__] = t;                   \
+    return std::forward_as_tuple(__VA_ARGS__); \
   }
 
 // 将成员解构成 tuple
@@ -169,13 +169,30 @@ auto StructAsTuple(T& t) {
   // clang-format on
 }
 
+template <size_t N>
+struct FieldInfo {
+  char name_[N + 1];
+
+  constexpr FieldInfo(std::string_view name) : name_{} {
+    for (size_t i = 0; i < N; ++i)
+      name_[i] = name[i];
+  }
+
+  constexpr std::string_view name() const { return {name_, N}; }
+};
+
 template <typename T, size_t N, typename F>
 void VisitN(T& t, F&& callback) {
   auto refs = StructAsTuple<T, N>(t);
 
   auto iterate = [&]<size_t... Is>(std::index_sequence<Is...>) {
-    (callback(get_nth_field_name_str_view<T, N, Is>(), std::get<Is>(refs)),
-     ...);
+    (
+        [&] {
+          constexpr auto name_v = get_nth_field_name_str_view<T, N, Is>();
+          callback.template operator()<FieldInfo<name_v.size()>(name_v)>(
+              std::get<Is>(refs));
+        }(),
+        ...);
   };
 
   iterate(std::make_index_sequence<N>{});
